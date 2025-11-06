@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estación de Trabajo - NetOps</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-color: #f1f5f9;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --panel-bg: #334155;
+            --border-color: #475569;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --terminal-green: #22c55e;
+            --terminal-bg: #0a0a0a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 20%);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header semántico */
+        header.app-bar {
+            background: linear-gradient(135deg, var(--panel-bg) 0%, var(--bg-secondary) 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 16px;
+            display: flex;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 100;
+        }
+
+        .app-button {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
+            border: none;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .app-button:hover::before {
+            left: 100%;
+        }
+
+        .app-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .app-button:active {
+            transform: translateY(0);
+        }
+
+        .app-icon {
+            font-size: 18px;
+        }
+
+        /* Main semántico */
+        main.workspace {
+            position: relative;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            flex: 1;
+        }
+
+        /* Section semántico para ventanas */
+        section.app-window {
+            position: absolute;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            min-width: 600px;
+            min-height: 400px;
+            display: none;
+            resize: both;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        header.app-header {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
+            padding: 10px 16px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .app-content {
+            padding: 16px;
+            height: calc(100% - 46px);
+            overflow: auto;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        /* Footer semántico */
+        footer.status-bar {
+            background: linear-gradient(135deg, var(--panel-bg) 0%, var(--bg-secondary) 100%);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 16px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Estilos específicos para el navegador */
+        .browser-iframe {
+            width: 100%;
+            height: 400px;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 8px;
+        }
+
+        .browser-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        .browser-url {
+            flex: 1;
+            padding: 10px 12px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .browser-url:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .browser-button {
+            padding: 10px 14px;
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .browser-button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .browser-button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            color: var(--warning-color);
+        }
+
+        .error {
+            color: var(--error-color);
+        }
+
+        .success {
+            color: var(--success-color);
+        }
+
+        /* Estilos para la CLI */
+        .cli-output {
+            width: 100%;
+            height: 300px;
+            background: var(--terminal-bg);
+            color: var(--terminal-green);
+            font-family: 'Courier New', monospace;
+            padding: 12px;
+            border: none;
+            resize: none;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .cli-input-container {
+            display: flex;
+            margin-top: 8px;
+            align-items: center;
+            background: var(--terminal-bg);
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .cli-prompt {
+            color: var(--terminal-green);
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        .cli-input {
+            flex: 1;
+            background: transparent;
+            color: var(--terminal-green);
+            border: none;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            padding: 5px;
+        }
+
+        /* Estilos para el explorador de archivos */
+        .file-explorer {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            cursor: default;
+            user-select: none;
+        }
+
+        .file-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            margin: 2px 0;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .directory {
+            color: #4fc3f7;
+        }
+
+        .file {
+            color: #ffffff;
+        }
+
+        .indent {
+            margin-left: 20px;
+        }
+
+        /* Animaciones adicionales */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        section.app-window {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Efectos de brillo para elementos interactivos */
+        .glow {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Mejoras de scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Estilos para artículos dentro de las apps */
+        article.tool-panel {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        article.tool-panel h3 {
+            margin-bottom: 12px;
+            color: var(--accent-color);
+        }
+
+        /* Navegación semántica */
+        nav.app-navigation {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Mejoras de accesibilidad */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header principal con navegación -->
+    <header class="app-bar" role="banner">
+        <nav class="app-navigation" aria-label="Aplicaciones principales">
+            <button class="app-button" data-app="browser" aria-label="Abrir navegador web">
+                <span class="app-icon" aria-hidden="true">🌐</span>
+                <span>Navegador Web</span>
+            </button>
+            <button class="app-button" data-app="cli" aria-label="Abrir terminal de comandos">
+                <span class="app-icon" aria-hidden="true">💻</span>
+                <span>Terminal</span>
+            </button>
+            <button class="app-button" data-app="editor" aria-label="Abrir editor de texto">
+                <span class="app-icon" aria-hidden="true">📝</span>
+                <span>Editor</span>
+            </button>
+            <button class="app-button" data-app="explorer" aria-label="Abrir explorador de archivos">
+                <span class="app-icon" aria-hidden="true">🗂️</span>
+                <span>Explorador</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Área de trabajo principal -->
+    <main class="workspace" role="main" aria-label="Área de trabajo de aplicaciones">
+        <!-- Las ventanas de aplicaciones aparecerán aquí -->
+    </main>
+
+    <!-- Footer con información de estado -->
+    <footer class="status-bar" role="contentinfo" aria-label="Información del sistema">
+        <div class="status-item">
+            <div class="status-indicator" aria-hidden="true"></div>
+            <span id="ip-status">IP: 192.168.1.100 | MAC: 00:1B:44:11:3A:B7</span>
+        </div>
+        <div class="status-item">
+            <span id="dns-status">DNS: Cache: 0 | Hosts: 2</span>
+        </div>
+    </footer>
+
+    <!-- Template semántico para ventanas de aplicaciones -->
+    <template id="app-template">
+        <section class="app-window" role="dialog" aria-modal="true" aria-labelledby="app-title">
+            <header class="app-header">
+                <h2 id="app-title" class="app-title">Título</h2>
+                <button class="close-btn" aria-label="Cerrar ventana">×</button>
+            </header>
+            <div class="app-content">
+                <!-- Contenido específico de cada app -->
+            </div>
+        </section>
+    </template>
+
+    <script>
+        // Sistema de archivos simulado
+        class FileSystem {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                if (!localStorage.getItem('fileSystem')) {
+                    const defaultFS = {
+                        dirs: {
+                            'C:': {
+                                files: {
+                                    'readme.txt': 'Bienvenido a la estación de trabajo NetOps'
+                                }
+                            },
+                            '/drivers': {
+                                dirs: {
+                                    'etc': {
+                                        files: {
+                                            'hosts': '127.0.0.1 localhost\n192.168.1.1 router.local\n8.8.8.8 dns.google\n142.251.40.206 www.google.com\n151.101.1.69 www.stackoverflow.com',
+                                            'resolv.conf': 'nameserver 192.168.1.1\nnameserver 8.8.8.8'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    localStorage.setItem('fileSystem', JSON.stringify(defaultFS));
+                }
+            }
+
+            getFileSystem() {
+                return JSON.parse(localStorage.getItem('fileSystem'));
+            }
+
+            saveFileSystem(fs) {
+                localStorage.setItem('fileSystem', JSON.stringify(fs));
+            }
+
+            readFile(path) {
+                const fs = this.getFileSystem();
+                const parts = path.split('/').filter(p => p);
+                let current = fs;
+                
+                for (const part of parts) {
+                    if (current.dirs && current.dirs[part]) {
+                        current = current.dirs[part];
+                    } else if (current.files && current.files[part]) {
+                        return current.files[part];
+                    } else {
+                        return null;
+                    }
+                }
+                return null;
+            }
+
+            writeFile(path, content) {
+                const fs = this.getFileSystem();
+                const parts = path.split('/').filter(p => p);
+                let current = fs;
+                
+                for (let i = 0; i < parts.length - 1; i++) {
+                    const part = parts[i];
+                    if (!current.dirs) current.dirs = {};
+                    if (!current.dirs[part]) current.dirs[part] = {};
+                    current = current.dirs[part];
+                }
+                
+                if (!current.files) current.files = {};
+                current.files[parts[parts.length - 1]] = content;
+                this.saveFileSystem(fs);
+                return true;
+            }
+
+            lookupInHosts(hostname) {
+                const hostsContent = this.readFile('/drivers/etc/hosts');
+                if (!hostsContent) return null;
+
+                const lines = hostsContent.split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed && !trimmed.startsWith('#')) {
+                        const parts = trimmed.split(/\s+/);
+                        const ip = parts[0];
+                        const hosts = parts.slice(1);
+                        
+                        if (hosts.includes(hostname)) {
+                            return ip;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            listDirectory(path) {
+                const fs = this.getFileSystem();
+                const parts = path.split('/').filter(p => p);
+                let current = fs;
+                
+                for (const part of parts) {
+                    if (current.dirs && current.dirs[part]) {
+                        current = current.dirs[part];
+                    } else {
+                        return null;
+                    }
+                }
+                
+                return {
+                    dirs: Object.keys(current.dirs || {}),
+                    files: Object.keys(current.files || {})
+                };
+            }
+        }
+
+        // DNS Cache mejorada
+        class DNSCache {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                if (!localStorage.getItem('dnsCache')) {
+                    localStorage.setItem('dnsCache', JSON.stringify({}));
+                }
+            }
+
+            getCache() {
+                return JSON.parse(localStorage.getItem('dnsCache'));
+            }
+
+            setCache(cache) {
+                localStorage.setItem('dnsCache', JSON.stringify(cache));
+            }
+
+            lookup(hostname) {
+                const cache = this.getCache();
+                const entry = cache[hostname];
+                if (entry && entry.expires > Date.now()) {
+                    return entry.ip;
+                }
+                return null;
+            }
+
+            store(hostname, ip, ttl = 300000) {
+                const cache = this.getCache();
+                cache[hostname] = {
+                    ip: ip,
+                    expires: Date.now() + ttl,
+                    timestamp: new Date().toISOString()
+                };
+                this.setCache(cache);
+                this.updateStatus();
+            }
+
+            flush() {
+                localStorage.setItem('dnsCache', JSON.stringify({}));
+                this.updateStatus();
+            }
+
+            getStats() {
+                const cache = this.getCache();
+                const validEntries = Object.values(cache).filter(entry => entry.expires > Date.now());
+                return {
+                    total: Object.keys(cache).length,
+                    valid: validEntries.length
+                };
+            }
+
+            updateStatus() {
+                const stats = this.getStats();
+                const hostsCount = this.getHostsCount();
+                document.getElementById('dns-status').textContent = 
+                    `DNS: Cache: ${stats.valid} | Hosts: ${hostsCount}`;
+            }
+
+            getHostsCount() {
+                const fileSystem = new FileSystem();
+                const hostsContent = fileSystem.readFile('/drivers/etc/hosts');
+                if (!hostsContent) return 0;
+                
+                const lines = hostsContent.split('\n');
+                let count = 0;
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed && !trimmed.startsWith('#')) {
+                        const parts = trimmed.split(/\s+/);
+                        if (parts.length >= 2) {
+                            count += parts.length - 1;
+                        }
+                    }
+                }
+                return count;
+            }
+        }
+
+        // Simulación de red y paquetes
+        class NetworkSimulator {
+            constructor() {
+                this.localIP = '192.168.1.100';
+                this.localMAC = '00:1B:44:11:3A:B7';
+                this.gatewayIP = '192.168.1.1';
+                this.gatewayMAC = '00:1B:44:11:3A:B8';
+            }
+
+            async ping(hostname) {
+                const fileSystem = new FileSystem();
+                const dnsCache = new DNSCache();
+                
+                let ip = dnsCache.lookup(hostname);
+                if (!ip) {
+                    ip = fileSystem.lookupInHosts(hostname);
+                    if (ip) {
+                        dnsCache.store(hostname, ip);
+                    }
+                }
+                
+                if (!ip) {
+                    throw new Error(`No se pudo resolver ${hostname}`);
+                }
+                
+                const startTime = Date.now();
+                const rtt = Math.random() * 100 + 10;
+                await new Promise(resolve => setTimeout(resolve, rtt));
+                
+                const endTime = Date.now();
+                const actualRTT = endTime - startTime;
+                
+                return {
+                    ip: ip,
+                    rtt: actualRTT,
+                    ttl: 64,
+                    bytes: 32
+                };
+            }
+
+            async traceroute(hostname) {
+                const hops = [];
+                const maxHops = 30;
+                
+                for (let ttl = 1; ttl <= maxHops; ttl++) {
+                    const responseTime = Math.random() * 50 + 10;
+                    await new Promise(resolve => setTimeout(resolve, responseTime));
+                    
+                    let hopIP;
+                    if (ttl === 1) {
+                        hopIP = this.gatewayIP;
+                    } else if (ttl < 5) {
+                        hopIP = `10.0.${ttl}.1`;
+                    } else if (ttl < 10) {
+                        hopIP = `172.16.${ttl-4}.1`;
+                    } else {
+                        const fileSystem = new FileSystem();
+                        const dnsCache = new DNSCache();
+                        
+                        let destIP = dnsCache.lookup(hostname);
+                        if (!destIP) {
+                            destIP = fileSystem.lookupInHosts(hostname);
+                        }
+                        
+                        if (destIP) {
+                            hopIP = destIP;
+                            hops.push({
+                                hop: ttl,
+                                ip: hopIP,
+                                time: responseTime
+                            });
+                            break;
+                        } else {
+                            hopIP = `203.0.${ttl-9}.1`;
+                        }
+                    }
+                    
+                    hops.push({
+                        hop: ttl,
+                        ip: hopIP,
+                        time: responseTime
+                    });
+                    
+                    if (ttl >= 15 && Math.random() > 0.7) {
+                        break;
+                    }
+                }
+                
+                return hops;
+            }
+
+            async curl(url) {
+                const fileSystem = new FileSystem();
+                const dnsCache = new DNSCache();
+                
+                const hostname = new URL(url).hostname;
+                let ip = dnsCache.lookup(hostname);
+                if (!ip) {
+                    ip = fileSystem.lookupInHosts(hostname);
+                    if (ip) {
+                        dnsCache.store(hostname, ip);
+                    } else {
+                        throw new Error(`No se pudo resolver ${hostname}`);
+                    }
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                const statusCodes = [200, 301, 404, 500];
+                const statusCode = statusCodes[Math.floor(Math.random() * statusCodes.length)];
+                
+                let responseBody = '';
+                if (statusCode === 200) {
+                    responseBody = `<html><body><h1>Página simulada: ${url}</h1><p>Esta es una respuesta simulada del servidor ${ip}</p></body></html>`;
+                } else if (statusCode === 301) {
+                    responseBody = 'Redirección';
+                } else if (statusCode === 404) {
+                    responseBody = 'Página no encontrada';
+                } else {
+                    responseBody = 'Error del servidor';
+                }
+                
+                return {
+                    statusCode: statusCode,
+                    headers: {
+                        'Content-Type': 'text/html',
+                        'Content-Length': responseBody.length,
+                        'Server': 'NetOps-Simulated/1.0'
+                    },
+                    body: responseBody
+                };
+            }
+
+            async pathping(hostname) {
+                const tracerouteResult = await this.traceroute(hostname);
+                const pingStats = [];
+                
+                for (let i = 0; i < 5; i++) {
+                    try {
+                        const pingResult = await this.ping(hostname);
+                        pingStats.push(pingResult.rtt);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    } catch (e) {
+                        pingStats.push(null);
+                    }
+                }
+                
+                return {
+                    route: tracerouteResult,
+                    pingStats: pingStats
+                };
+            }
+
+            ipconfig() {
+                return {
+                    ip: this.localIP,
+                    subnet: '255.255.255.0',
+                    gateway: this.gatewayIP,
+                    mac: this.localMAC,
+                    dns: ['192.168.1.1', '8.8.8.8']
+                };
+            }
+        }
+
+        // Navegador con iframe
+        class Browser {
+            constructor(content) {
+                this.content = content;
+                this.currentUrl = '';
+                this.isLoading = false;
+                this.setupBrowser();
+            }
+
+            setupBrowser() {
+                this.content.innerHTML = `
+                    <article class="tool-panel" aria-label="Controles del navegador">
+                        <h3 class="sr-only">Controles de Navegación</h3>
+                        <div class="browser-controls">
+                            <button class="browser-button" id="browser-back" disabled aria-label="Página anterior">←</button>
+                            <button class="browser-button" id="browser-forward" disabled aria-label="Página siguiente">→</button>
+                            <button class="browser-button" id="browser-refresh" aria-label="Recargar página">↻</button>
+                            <input type="url" class="browser-url" id="browser-url" placeholder="https://ejemplo.com" aria-label="Dirección web">
+                            <button class="browser-button" id="browser-go" aria-label="Ir a la página">Ir</button>
+                        </div>
+                        <div class="browser-status" id="browser-status" aria-live="polite" aria-atomic="true"></div>
+                    </article>
+                    <article class="tool-panel" aria-label="Contenido web">
+                        <h3 class="sr-only">Contenido de la Página</h3>
+                        <iframe class="browser-iframe" id="browser-iframe" 
+                                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                                style="height: 500px;"
+                                title="Contenido web"
+                                aria-label="Contenido de la página web"></iframe>
+                    </article>
+                `;
+
+                this.iframe = this.content.querySelector('#browser-iframe');
+                this.urlInput = this.content.querySelector('#browser-url');
+                this.statusDiv = this.content.querySelector('#browser-status');
+                this.backButton = this.content.querySelector('#browser-back');
+                this.forwardButton = this.content.querySelector('#browser-forward');
+                this.refreshButton = this.content.querySelector('#browser-refresh');
+                this.goButton = this.content.querySelector('#browser-go');
+
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                this.goButton.addEventListener('click', () => this.navigate());
+                this.urlInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.navigate();
+                });
+                this.refreshButton.addEventListener('click', () => this.refresh());
+                this.backButton.addEventListener('click', () => this.goBack());
+                this.forwardButton.addEventListener('click', () => this.goForward());
+
+                this.iframe.addEventListener('load', () => {
+                    this.isLoading = false;
+                    this.updateStatus('Página cargada correctamente', 'success');
+                    this.updateButtons();
+                });
+
+                this.iframe.addEventListener('error', () => {
+                    this.isLoading = false;
+                    this.updateStatus('Error al cargar la página', 'error');
+                    this.updateButtons();
+                });
+            }
+
+            async navigate() {
+                let url = this.urlInput.value.trim();
+                if (!url) return;
+
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                    this.urlInput.value = url;
+                }
+
+                this.currentUrl = url;
+                this.isLoading = true;
+                
+                this.updateStatus('Resolviendo DNS...', 'loading');
+                
+                try {
+                    const ip = await this.resolveDNS(url);
+                    
+                    this.updateStatus(`Conectando a ${ip}...`, 'loading');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    this.updateStatus('Cargando página...', 'loading');
+                    this.iframe.src = url;
+                    this.updateHistory();
+                    
+                } catch (error) {
+                    this.updateStatus(`Error: ${error.message}`, 'error');
+                    this.isLoading = false;
+                }
+            }
+
+            async resolveDNS(url) {
+                const fileSystem = new FileSystem();
+                const dnsCache = new DNSCache();
+                
+                const hostname = new URL(url).hostname;
+                
+                let ip = dnsCache.lookup(hostname);
+                if (ip) {
+                    this.updateStatus(`DNS encontrado en caché: ${ip}`, 'success');
+                    return ip;
+                }
+                
+                ip = fileSystem.lookupInHosts(hostname);
+                if (ip) {
+                    this.updateStatus(`DNS encontrado en hosts: ${ip}`, 'success');
+                    dnsCache.store(hostname, ip);
+                    return ip;
+                }
+                
+                this.updateStatus('Consultando servidor DNS externo...', 'loading');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const predefinedDNS = {
+                    'www.google.com': '142.251.40.206',
+                    'google.com': '142.251.40.206',
+                    'www.stackoverflow.com': '151.101.1.69',
+                    'stackoverflow.com': '151.101.1.69',
+                    'www.github.com': '140.82.121.4',
+                    'github.com': '140.82.121.4',
+                    'localhost': '127.0.0.1'
+                };
+                
+                ip = predefinedDNS[hostname];
+                if (ip) {
+                    this.updateStatus(`DNS resuelto: ${ip}`, 'success');
+                    dnsCache.store(hostname, ip);
+                    return ip;
+                }
+                
+                throw new Error(`No se pudo resolver DNS para: ${hostname}`);
+            }
+
+            refresh() {
+                if (this.currentUrl) {
+                    this.iframe.src = this.currentUrl;
+                    this.isLoading = true;
+                    this.updateStatus('Recargando página...', 'loading');
+                }
+            }
+
+            goBack() {
+                try {
+                    this.iframe.contentWindow.history.back();
+                } catch (e) {
+                    this.updateStatus('No se puede ir hacia atrás', 'error');
+                }
+            }
+
+            goForward() {
+                try {
+                    this.iframe.contentWindow.history.forward();
+                } catch (e) {
+                    this.updateStatus('No se puede ir hacia adelante', 'error');
+                }
+            }
+
+            updateStatus(message, type = '') {
+                this.statusDiv.textContent = message;
+                this.statusDiv.className = `browser-status ${type}`;
+            }
+
+            updateButtons() {
+                this.backButton.disabled = !this.canGoBack();
+                this.forwardButton.disabled = !this.canGoForward();
+                this.refreshButton.disabled = !this.currentUrl;
+            }
+
+            canGoBack() {
+                try {
+                    return this.iframe.contentWindow.history.length > 1;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            canGoForward() {
+                return false;
+            }
+
+            updateHistory() {
+                this.updateButtons();
+            }
+        }
+
+        // Gestor de aplicaciones
+        class AppManager {
+            constructor() {
+                this.fileSystem = new FileSystem();
+                this.dnsCache = new DNSCache();
+                this.network = new NetworkSimulator();
+                this.setupEventListeners();
+                this.updateStatus();
+            }
+
+            setupEventListeners() {
+                document.querySelectorAll('.app-button').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.openApp(e.target.dataset.app);
+                    });
+                });
+            }
+
+            openApp(appName) {
+                const template = document.getElementById('app-template');
+                const clone = template.content.cloneNode(true);
+                const appWindow = clone.querySelector('section.app-window');
+                const appContent = clone.querySelector('.app-content');
+                const closeBtn = clone.querySelector('.close-btn');
+                const appTitle = clone.querySelector('.app-title');
+
+                const appId = 'app-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                appWindow.id = appId;
+
+                appWindow.style.left = Math.random() * (window.innerWidth - 600) + 'px';
+                appWindow.style.top = Math.random() * (window.innerHeight - 400) + 'px';
+                appWindow.style.display = 'block';
+
+                switch(appName) {
+                    case 'browser':
+                        appTitle.textContent = 'Navegador Web';
+                        appTitle.id = appId + '-title';
+                        appWindow.setAttribute('aria-labelledby', appId + '-title');
+                        new Browser(appContent);
+                        break;
+                    case 'cli':
+                        appTitle.textContent = 'Terminal - Línea de Comandos';
+                        appTitle.id = appId + '-title';
+                        appWindow.setAttribute('aria-labelledby', appId + '-title');
+                        this.setupCLI(appContent, appTitle);
+                        break;
+                    case 'editor':
+                        appTitle.textContent = 'Editor de Texto';
+                        appTitle.id = appId + '-title';
+                        appWindow.setAttribute('aria-labelledby', appId + '-title');
+                        this.setupEditor(appContent, appTitle);
+                        break;
+                    case 'explorer':
+                        appTitle.textContent = 'Explorador de Archivos';
+                        appTitle.id = appId + '-title';
+                        appWindow.setAttribute('aria-labelledby', appId + '-title');
+                        this.setupExplorer(appContent, appTitle);
+                        break;
+                }
+
+                closeBtn.addEventListener('click', () => {
+                    appWindow.remove();
+                });
+
+                this.addDragFunctionality(appWindow);
+                document.querySelector('main.workspace').appendChild(appWindow);
+            }
+
+            addDragFunctionality(appWindow) {
+                const appHeader = appWindow.querySelector('header.app-header');
+                let isDragging = false;
+                let offsetX, offsetY;
+
+                appHeader.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    offsetX = e.clientX - appWindow.offsetLeft;
+                    offsetY = e.clientY - appWindow.offsetTop;
+                    appWindow.style.zIndex = 1000;
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        appWindow.style.left = (e.clientX - offsetX) + 'px';
+                        appWindow.style.top = (e.clientY - offsetY) + 'px';
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    appWindow.style.zIndex = '';
+                });
+            }
+
+            setupCLI(content, title) {
+                content.innerHTML = `
+                    <article class="tool-panel" aria-label="Salida de terminal">
+                        <h3 class="sr-only">Salida de Comandos</h3>
+                        <textarea class="cli-output" readonly aria-label="Historial de comandos"></textarea>
+                    </article>
+                    <article class="tool-panel" aria-label="Entrada de comandos">
+                        <h3 class="sr-only">Entrada de Comandos</h3>
+                        <div class="cli-input-container">
+                            <span class="cli-prompt" aria-hidden="true">$</span>
+                            <input type="text" class="cli-input" aria-label="Escribir comando">
+                        </div>
+                    </article>
+                `;
+
+                const output = content.querySelector('.cli-output');
+                const input = content.querySelector('.cli-input');
+
+                this.cliOutput('Sistema NetOps Terminal v1.0\nEscribe "help" para ver comandos disponibles\n', output);
+
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.handleCLICommand(input.value, output);
+                        input.value = '';
+                    }
+                });
+
+                input.focus();
+            }
+
+            setupEditor(content, title) {
+                content.innerHTML = `
+                    <article class="tool-panel" aria-label="Controles del editor">
+                        <h3>Controles del Editor</h3>
+                        <div style="margin-bottom: 10px;">
+                            <input type="text" class="file-path" placeholder="/ruta/al/archivo.txt" 
+                                   aria-label="Ruta del archivo" style="width: 70%; padding: 5px;">
+                            <button class="load-file" style="padding: 5px 10px;" aria-label="Abrir archivo">Abrir</button>
+                            <button class="save-file" style="padding: 5px 10px;" aria-label="Guardar archivo">Guardar</button>
+                            <button class="new-file" style="padding: 5px 10px;" aria-label="Nuevo archivo">Nuevo</button>
+                        </div>
+                    </article>
+                    <article class="tool-panel" aria-label="Área de edición">
+                        <h3 class="sr-only">Contenido del Archivo</h3>
+                        <textarea class="editor-content" 
+                                  style="width: 100%; height: 300px; font-family: monospace; padding: 10px;"
+                                  aria-label="Contenido del archivo"></textarea>
+                    </article>
+                    <article class="tool-panel" aria-label="Estado del editor">
+                        <h3 class="sr-only">Mensajes de Estado</h3>
+                        <div class="editor-status" style="margin-top: 10px; color: #ffa500;"></div>
+                    </article>
+                `;
+
+                const filePath = content.querySelector('.file-path');
+                const editorContent = content.querySelector('.editor-content');
+                const loadButton = content.querySelector('.load-file');
+                const saveButton = content.querySelector('.save-file');
+                const newButton = content.querySelector('.new-file');
+                const status = content.querySelector('.editor-status');
+
+                loadButton.addEventListener('click', () => {
+                    const path = filePath.value.trim();
+                    if (!path) {
+                        status.textContent = 'Error: Especifica una ruta de archivo';
+                        return;
+                    }
+
+                    const content = this.fileSystem.readFile(path);
+                    if (content !== null) {
+                        editorContent.value = content;
+                        status.textContent = `Archivo ${path} cargado correctamente`;
+                    } else {
+                        status.textContent = `Error: No se pudo leer el archivo ${path}`;
+                    }
+                });
+
+                saveButton.addEventListener('click', () => {
+                    const path = filePath.value.trim();
+                    if (!path) {
+                        status.textContent = 'Error: Especifica una ruta de archivo';
+                        return;
+                    }
+
+                    const success = this.fileSystem.writeFile(path, editorContent.value);
+                    if (success) {
+                        status.textContent = `Archivo ${path} guardado correctamente`;
+                    } else {
+                        status.textContent = `Error: No se pudo guardar el archivo ${path}`;
+                    }
+                });
+
+                newButton.addEventListener('click', () => {
+                    filePath.value = '';
+                    editorContent.value = '';
+                    status.textContent = 'Nuevo archivo creado';
+                });
+            }
+
+            setupExplorer(content, title) {
+                content.innerHTML = `
+                    <article class="tool-panel" aria-label="Explorador de archivos">
+                        <h3>Sistema de Archivos</h3>
+                        <nav class="file-explorer" aria-label="Navegación de archivos">
+                            Cargando sistema de archivos...
+                        </nav>
+                    </article>
+                `;
+                this.renderFileExplorer(content);
+            }
+
+            cliOutput(text, outputElement) {
+                outputElement.value += text + '\n';
+                outputElement.scrollTop = outputElement.scrollHeight;
+            }
+
+            async handleCLICommand(command, output) {
+                this.cliOutput(`$ ${command}`, output);
+                
+                const args = command.trim().split(' ');
+                const cmd = args[0].toLowerCase();
+
+                switch(cmd) {
+                    case 'ping':
+                        if (args[1]) {
+                            try {
+                                const result = await this.network.ping(args[1]);
+                                this.cliOutput(`Respuesta desde ${result.ip}: bytes=${result.bytes} tiempo=${result.rtt}ms TTL=${result.ttl}`, output);
+                            } catch (e) {
+                                this.cliOutput(`Error: ${e.message}`, output);
+                            }
+                        } else {
+                            this.cliOutput('Uso: ping <hostname>', output);
+                        }
+                        break;
+                        
+                    case 'curl':
+                        if (args[1]) {
+                            try {
+                                const result = await this.network.curl(args[1]);
+                                this.cliOutput(`Código de estado HTTP: ${result.statusCode}`, output);
+                                this.cliOutput('Encabezados:', output);
+                                for (const [key, value] of Object.entries(result.headers)) {
+                                    this.cliOutput(`  ${key}: ${value}`, output);
+                                }
+                                this.cliOutput('\nCuerpo de respuesta:', output);
+                                this.cliOutput(result.body, output);
+                            } catch (e) {
+                                this.cliOutput(`Error: ${e.message}`, output);
+                            }
+                        } else {
+                            this.cliOutput('Uso: curl <URL>', output);
+                        }
+                        break;
+                        
+                    case 'traceroute':
+                        if (args[1]) {
+                            try {
+                                const hops = await this.network.traceroute(args[1]);
+                                this.cliOutput(`traceroute a ${args[1]} (${hops[hops.length-1].ip}), ${hops.length} saltos máx`, output);
+                                for (const hop of hops) {
+                                    this.cliOutput(`  ${hop.hop}  ${hop.ip}  ${hop.time.toFixed(1)} ms`, output);
+                                }
+                            } catch (e) {
+                                this.cliOutput(`Error: ${e.message}`, output);
+                            }
+                        } else {
+                            this.cliOutput('Uso: traceroute <hostname>', output);
+                        }
+                        break;
+                        
+                    case 'pathping':
+                        if (args[1]) {
+                            try {
+                                const result = await this.network.pathping(args[1]);
+                                this.cliOutput(`Ruta a ${args[1]}:`, output);
+                                for (const hop of result.route) {
+                                    this.cliOutput(`  ${hop.hop}  ${hop.ip}`, output);
+                                }
+                                this.cliOutput('\nEstadísticas de ping:', output);
+                                result.pingStats.forEach((stat, i) => {
+                                    this.cliOutput(`  Intento ${i+1}: ${stat ? stat + 'ms' : 'timeout'}`, output);
+                                });
+                            } catch (e) {
+                                this.cliOutput(`Error: ${e.message}`, output);
+                            }
+                        } else {
+                            this.cliOutput('Uso: pathping <hostname>', output);
+                        }
+                        break;
+                        
+                    case 'ipconfig':
+                        const config = this.network.ipconfig();
+                        this.cliOutput('Configuración de red:', output);
+                        this.cliOutput(`  Dirección IP: ${config.ip}`, output);
+                        this.cliOutput(`  Máscara de subred: ${config.subnet}`, output);
+                        this.cliOutput(`  Puerta de enlace: ${config.gateway}`, output);
+                        this.cliOutput(`  Dirección MAC: ${config.mac}`, output);
+                        this.cliOutput(`  Servidores DNS: ${config.dns.join(', ')}`, output);
+                        break;
+                        
+                    case 'flushdns':
+                        this.dnsCache.flush();
+                        this.cliOutput('Caché DNS limpiada correctamente', output);
+                        this.updateStatus();
+                        break;
+                        
+                    case 'tree':
+                        this.cliOutput('Estructura del sistema de archivos:', output);
+                        this.renderFileTree(output);
+                        break;
+                        
+                    case 'help':
+                        this.cliOutput('Comandos disponibles:', output);
+                        this.cliOutput('  ping <hostname> - Envía paquetes ICMP a un host', output);
+                        this.cliOutput('  curl <url> - Realiza una petición HTTP', output);
+                        this.cliOutput('  traceroute <hostname> - Traza la ruta a un host', output);
+                        this.cliOutput('  pathping <hostname> - Combina ping y traceroute', output);
+                        this.cliOutput('  ipconfig - Muestra configuración de red', output);
+                        this.cliOutput('  flushdns - Limpia la caché DNS', output);
+                        this.cliOutput('  tree - Muestra estructura de archivos', output);
+                        this.cliOutput('  help - Muestra esta ayuda', output);
+                        break;
+                        
+                    case '':
+                        break;
+                        
+                    default:
+                        this.cliOutput(`Comando no reconocido: ${cmd}`, output);
+                        this.cliOutput('Escribe "help" para ver comandos disponibles', output);
+                }
+            }
+
+            renderFileExplorer(content) {
+                const explorer = content.querySelector('.file-explorer');
+                const fs = this.fileSystem.getFileSystem();
+                
+                let html = '';
+                
+                function renderDirectory(dir, name, indent = 0) {
+                    const indentStr = '  '.repeat(indent);
+                    
+                    html += `<div class="file-item directory" style="margin-left: ${indent * 20}px;" data-path="${name}" role="treeitem" aria-expanded="true">
+                        📁 ${name}
+                    </div>`;
+                    
+                    if (dir.dirs) {
+                        Object.keys(dir.dirs).forEach(subDirName => {
+                            renderDirectory(dir.dirs[subDirName], subDirName, indent + 1);
+                        });
+                    }
+                    
+                    if (dir.files) {
+                        Object.keys(dir.files).forEach(fileName => {
+                            html += `<div class="file-item file" style="margin-left: ${(indent + 1) * 20}px;" data-path="${name}/${fileName}" role="treeitem">
+                                📄 ${fileName}
+                            </div>`;
+                        });
+                    }
+                }
+                
+                Object.keys(fs.dirs).forEach(dirName => {
+                    renderDirectory(fs.dirs[dirName], dirName);
+                });
+                
+                explorer.innerHTML = html;
+                explorer.setAttribute('role', 'tree');
+                
+                explorer.querySelectorAll('.file-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const path = item.dataset.path;
+                        if (item.classList.contains('file')) {
+                            this.openFileInEditor(path);
+                        } else if (item.classList.contains('directory')) {
+                            const children = item.parentElement.querySelectorAll(`[style*="margin-left: ${(parseInt(item.style.marginLeft) / 20 + 1) * 20}px"]`);
+                            children.forEach(child => {
+                                child.style.display = child.style.display === 'none' ? 'block' : 'none';
+                            });
+                        }
+                    });
+                });
+            }
+
+            renderFileTree(output) {
+                const fs = this.fileSystem.getFileSystem();
+                
+                function renderTree(dir, name, indent = 0) {
+                    const indentStr = '  '.repeat(indent);
+                    appManager.cliOutput(indentStr + name + '/', output);
+                    
+                    if (dir.dirs) {
+                        Object.keys(dir.dirs).forEach(subDirName => {
+                            renderTree(dir.dirs[subDirName], subDirName, indent + 1);
+                        });
+                    }
+                    
+                    if (dir.files) {
+                        Object.keys(dir.files).forEach(fileName => {
+                            appManager.cliOutput(indentStr + '  ' + fileName, output);
+                        });
+                    }
+                }
+                
+                Object.keys(fs.dirs).forEach(dirName => {
+                    renderTree(fs.dirs[dirName], dirName);
+                });
+            }
+
+            openFileInEditor(path) {
+                const editorWindows = document.querySelectorAll('section.app-window');
+                let editorWindow = null;
+                
+                for (const win of editorWindows) {
+                    if (win.querySelector('.app-title').textContent === 'Editor de Texto') {
+                        editorWindow = win;
+                        break;
+                    }
+                }
+                
+                if (!editorWindow) {
+                    this.openApp('editor');
+                    setTimeout(() => {
+                        this.loadFileInEditor(path);
+                    }, 100);
+                } else {
+                    this.loadFileInEditor(path, editorWindow);
+                }
+            }
+
+            loadFileInEditor(path, editorWindow = null) {
+                if (!editorWindow) {
+                    editorWindow = document.querySelector('section.app-window:last-child');
+                }
+                
+                const filePathInput = editorWindow.querySelector('.file-path');
+                const editorContent = editorWindow.querySelector('.editor-content');
+                const status = editorWindow.querySelector('.editor-status');
+                
+                filePathInput.value = path;
+                const content = this.fileSystem.readFile(path);
+                
+                if (content !== null) {
+                    editorContent.value = content;
+                    status.textContent = `Archivo ${path} cargado correctamente`;
+                } else {
+                    status.textContent = `Error: No se pudo leer el archivo ${path}`;
+                }
+            }
+
+            updateStatus() {
+                this.dnsCache.updateStatus();
+            }
+        }
+
+        // Inicializar la aplicación
+        const appManager = new AppManager();
+    </script>
+</body>
+</html>
